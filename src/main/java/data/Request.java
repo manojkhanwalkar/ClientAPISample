@@ -18,7 +18,7 @@ public class Request  implements Serializable {
 
 
 
-    static final String service  = "/request";
+  //  static final String service  = "/request";
 
 
     long requestId;
@@ -31,8 +31,12 @@ public class Request  implements Serializable {
         this.requestId = id;
     }
 
-
-
+    @Override
+    public String toString() {
+        return "Request{" +
+                "requestId=" + requestId +
+                '}';
+    }
 }
 
 

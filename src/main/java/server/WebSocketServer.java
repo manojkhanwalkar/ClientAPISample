@@ -22,7 +22,7 @@ public class WebSocketServer {
 
         try {
             ServerContainer t = WebSocketServerContainerInitializer.configureContext(context);
-            //t.addEndpoint(MatchDeviceHandler.class);
+            t.addEndpoint(RequestHandler.class);
 
            // Handler.setProcessAdapter(new LMaxAdapter());
             // Handler.setProcessAdapter(new ThreadPoolAdapter());

@@ -19,8 +19,12 @@ public class Response {
         this.requestId = id;
     }
 
-
-
+    @Override
+    public String toString() {
+        return "Response{" +
+                "requestId=" + requestId +
+                '}';
+    }
 }
 
 
