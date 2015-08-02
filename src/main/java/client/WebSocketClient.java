@@ -8,6 +8,8 @@ package client;
         import java.io.IOException;
         import java.net.URI;
         import java.util.*;
+        import java.util.concurrent.ConcurrentHashMap;
+        import java.util.concurrent.ConcurrentMap;
 
 
 public class WebSocketClient {
@@ -92,7 +94,36 @@ public class WebSocketClient {
 
         }
 
+    static ConcurrentMap<Long,RequestHolder> waitList = new ConcurrentHashMap<>();
 
+    public static RequestHolder removeRequest(long requestId)
+    {
+        RequestHolder holder = waitList.remove(requestId);
+        return holder;
+    }
+
+
+    public void asend(Request task, Notify notify) {
+
+        try {
+            String e = mapper.writeValueAsString(task);
+
+            Session session = localSession.get();
+            if (session==null)
+            {
+                session = connect();
+                localSession.set(session);
+            }
+
+            waitList.put(task.getRequestId(),new RequestHolder(task,notify));
+
+            session.getBasicRemote().sendText(e);
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+
+
+    }
 
 
 

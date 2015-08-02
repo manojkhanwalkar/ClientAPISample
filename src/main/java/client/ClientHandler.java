@@ -36,6 +36,13 @@ public class ClientHandler {
         try {
             Response response = mapper.readValue(message, Response.class);
             long id = response.getRequestId();
+
+            RequestHolder holder = WebSocketClient.removeRequest(id);
+            if (holder!=null && holder.getNotify()!=null)
+            {
+                holder.getNotify().callback(response);
+            }
+
  //           RequestFutureTask task = waitList.get(id);
    //         task.getProcessor().setResponse(response);
 //

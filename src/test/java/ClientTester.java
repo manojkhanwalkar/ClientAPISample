@@ -13,6 +13,14 @@ public class ClientTester {
 
         WebSocketClient client = factory.getWebSocketClient("localhost",9090,"ws","/service/request");
 
+        Notify notify =  (response) -> {
+
+            System.out.println(response);
+            System.out.println("$$$$$$$$$$$$$$$$$$$$$ Callback processed ");
+
+
+        };
+
 
         for (int i=0;i<1;i++)
         {
@@ -22,7 +30,7 @@ public class ClientTester {
                 request.setRequestId(IdCreator.getId());
                 request.setPayLoad("HELLO WORLD FROM REQUEST");
                 for (int j=0;j<1;j++) {
-                    client.send(request);
+                    client.asend(request, notify);
                 }
 
             });
