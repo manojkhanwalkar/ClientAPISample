@@ -31,6 +31,7 @@ public class ClientTester {
                 request.setPayLoad("HELLO WORLD FROM REQUEST");
                 for (int j=0;j<1;j++) {
                     client.asend(request, notify);
+                    client.send(request);
                 }
 
             });
