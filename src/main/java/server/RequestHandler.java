@@ -31,11 +31,8 @@ public class RequestHandler   {
     }
 
 
-    //TODO - synchronization required on the client and server sending side .
     //TODO - async handling on client and server side
     // TODO - future impl required on the client side .
-    //TODO = multi threaded client tester
-    // TODO - create more client sessions on the same connection .
 
 
     @OnMessage
