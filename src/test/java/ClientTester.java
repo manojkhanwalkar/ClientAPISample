@@ -12,12 +12,24 @@ public class ClientTester {
 
        // client.connect();
 
-        Request request = new Request();
-        request.setRequestId(IdCreator.getId());
+        for (int i=0;i<1;i++)
+        {
+            Thread t = new Thread(()->{
 
-        client.send(request);
+                Request request = new Request();
+                request.setRequestId(IdCreator.getId());
+                for (int j=0;j<1;j++) {
+                    client.send(request);
+                }
+
+            });
+
+            t.start();
+        }
 
 
-        Thread.sleep(10000);
+
+
+        Thread.sleep(30000);
     }
 }

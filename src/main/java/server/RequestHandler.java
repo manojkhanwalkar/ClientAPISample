@@ -47,8 +47,9 @@ public class RequestHandler   {
             Response response = new Response();
 
             response.setRequestId(request.getRequestId());
-
-            session.getBasicRemote().sendText(mapper.writeValueAsString(response));
+            synchronized (session) {
+                session.getBasicRemote().sendText(mapper.writeValueAsString(response));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
