@@ -44,6 +44,7 @@ public class RequestHandler   {
             Response response = new Response();
 
             response.setRequestId(request.getRequestId());
+            response.setPayLoad("HELLO WORLD BACK FROM RESPONSE");
             synchronized (session) {
                 session.getBasicRemote().sendText(mapper.writeValueAsString(response));
             }

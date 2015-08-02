@@ -31,10 +31,21 @@ public class Request  implements Serializable {
         this.requestId = id;
     }
 
+    String payLoad;
+
+    public String getPayLoad() {
+        return payLoad;
+    }
+
+    public void setPayLoad(String payLoad) {
+        this.payLoad = payLoad;
+    }
+
     @Override
     public String toString() {
         return "Request{" +
                 "requestId=" + requestId +
+                ", payLoad='" + payLoad + '\'' +
                 '}';
     }
 }

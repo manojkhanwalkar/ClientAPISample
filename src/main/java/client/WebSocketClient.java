@@ -15,11 +15,6 @@ public class WebSocketClient {
     static WebSocketContainer container =  ContainerProvider.getWebSocketContainer();
 
 
-    //URI uri = URI.create("ws://localhost:8080/healthcheck");
-
-   // Map<String,SessionURITuple> sessions = new HashMap<>();
-
-   // List<String> endPoints = new ArrayList<>();
 
     String host = "localhost";
     int port = 9090;
@@ -28,24 +23,15 @@ public class WebSocketClient {
 
     String endPoint = "/service/request";
 
-   // List<String> handlerClasses;
-
-  /*  public WebSocketConnectionAdapter(List<String> endPoints, List<String> handlerClasses, String host, int port, String protocol, String clientId, String secret)
-    {
-
-        this.endPoints = endPoints ;
-        this.host = host;
-        this.port = port;
-        this.protocol = protocol ;
-        this.clientId = clientId;
-        this.secret = secret;
-        this.handlerClasses = handlerClasses;
-
-    } */
 
     static ThreadLocal<Session> localSession = new ThreadLocal<Session>();
 
-
+    public WebSocketClient(String host, int port, String protocol, String endPoint) {
+        this.host = host;
+        this.port = port;
+        this.protocol = protocol;
+        this.endPoint = endPoint;
+    }
 
 
     private Session connect() {
@@ -88,9 +74,6 @@ public class WebSocketClient {
 
     public void send(Request task) {
 
-        task.setRequestId(IdCreator.getId());
-
-
                 try {
                     String e = mapper.writeValueAsString(task);
 
@@ -116,19 +99,4 @@ public class WebSocketClient {
 }
 
 
-
-/*
-class SessionURITuple
-{
-    Session session ;
-    URI uri ;
-
-    public SessionURITuple(Session session , URI uri)
-    {
-        this.session = session ;
-        this.uri = uri;
-
-    }
-}
-*/
 

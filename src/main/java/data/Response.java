@@ -11,6 +11,16 @@ public class Response {
 
     long requestId;
 
+    String payLoad;
+
+    public String getPayLoad() {
+        return payLoad;
+    }
+
+    public void setPayLoad(String payLoad) {
+        this.payLoad = payLoad;
+    }
+
     public long getRequestId() {
         return requestId;
     }
@@ -23,6 +33,7 @@ public class Response {
     public String toString() {
         return "Response{" +
                 "requestId=" + requestId +
+                ", payLoad='" + payLoad + '\'' +
                 '}';
     }
 }

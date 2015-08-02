@@ -1,4 +1,4 @@
-import client.WebSocketClient;
+import client.*;
 import data.Request;
 import util.IdCreator;
 
@@ -8,9 +8,11 @@ import util.IdCreator;
 public class ClientTester {
 
     public static void main(String[] args) throws Exception {
-        WebSocketClient client = new WebSocketClient();
 
-       // client.connect();
+        WebSocketClientFactory factory = (WebSocketClientFactory)ClientFactory.getFactory(FactoryType.WebSocket);
+
+        WebSocketClient client = factory.getWebSocketClient("localhost",9090,"ws","/service/request");
+
 
         for (int i=0;i<1;i++)
         {
@@ -18,6 +20,7 @@ public class ClientTester {
 
                 Request request = new Request();
                 request.setRequestId(IdCreator.getId());
+                request.setPayLoad("HELLO WORLD FROM REQUEST");
                 for (int j=0;j<1;j++) {
                     client.send(request);
                 }
