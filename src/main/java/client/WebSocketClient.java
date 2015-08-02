@@ -16,12 +16,12 @@ public class WebSocketClient {
 
 
 
-    String host = "localhost";
-    int port = 9090;
+    String host ;
+    int port ;
 
-    String protocol = "ws";
+    String protocol;
 
-    String endPoint = "/service/request";
+    String endPoint;
 
 
     static ThreadLocal<Session> localSession = new ThreadLocal<Session>();
