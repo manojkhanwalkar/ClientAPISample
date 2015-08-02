@@ -4,18 +4,30 @@ import data.Request;
 import data.Response;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
-/**
- * Created by mkhanwalkar on 8/2/15.
- */
 public class RequestHolder implements Callable<Response> {
 
     Request request ;
     Notify notify;
+    FutureTask futureTask;
 
     public RequestHolder(Request request, Notify notify) {
         this.request = request;
         this.notify = notify;
+    }
+
+    public RequestHolder(Request request)
+    {
+        this.request = request;
+    }
+
+    public void setFutureTask(FutureTask futureTask) {
+        this.futureTask = futureTask;
+    }
+
+    public FutureTask getFutureTask() {
+        return futureTask;
     }
 
     public Request getRequest() {

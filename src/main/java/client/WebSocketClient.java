@@ -2,6 +2,7 @@ package client;
 
         import com.fasterxml.jackson.databind.ObjectMapper;
         import data.Request;
+        import data.Response;
         import util.IdCreator;
 
         import javax.websocket.*;
@@ -10,6 +11,8 @@ package client;
         import java.util.*;
         import java.util.concurrent.ConcurrentHashMap;
         import java.util.concurrent.ConcurrentMap;
+        import java.util.concurrent.Future;
+        import java.util.concurrent.FutureTask;
 
 
 public class WebSocketClient {
@@ -74,7 +77,7 @@ public class WebSocketClient {
 
     static ObjectMapper mapper = new ObjectMapper();
 
-    public void send(Request task) {
+    public Future<Response> send(Request task) {
 
                 try {
                     String e = mapper.writeValueAsString(task);
@@ -86,9 +89,19 @@ public class WebSocketClient {
                         localSession.set(session);
                     }
 
+                    RequestHolder rh = new RequestHolder(task);
+                    FutureTask<Response> ft = new FutureTask(rh);
+
+                    rh.setFutureTask(ft);
+
+                    waitList.put(task.getRequestId(),rh);
+
+
                     session.getBasicRemote().sendText(e);
+                    return ft;
                 } catch (IOException e1) {
                     e1.printStackTrace();
+                    return null;
                 }
 
 
@@ -114,6 +127,7 @@ public class WebSocketClient {
                 session = connect();
                 localSession.set(session);
             }
+
 
             waitList.put(task.getRequestId(),new RequestHolder(task,notify));
 

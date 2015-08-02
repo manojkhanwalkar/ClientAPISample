@@ -43,10 +43,11 @@ public class ClientHandler {
                 holder.getNotify().callback(response);
             }
 
- //           RequestFutureTask task = waitList.get(id);
-   //         task.getProcessor().setResponse(response);
-//
-  //          task.run();
+            if (holder!=null && holder.getFutureTask()!=null)
+            {
+                holder.setResponse(response);
+                holder.getFutureTask().run();
+            }
 
 
         } catch (IOException e) {
