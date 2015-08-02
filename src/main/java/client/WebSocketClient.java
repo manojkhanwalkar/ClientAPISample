@@ -43,22 +43,24 @@ public class WebSocketClient {
 
     } */
 
-    Session session = null;
+    static ThreadLocal<Session> localSession = new ThreadLocal<Session>();
 
 
 
 
-    public void connect() {
+    private Session connect() {
             try {
                 URI uri = URI.create(protocol+"://"+host+":"+port+ endPoint);
-                 session = container.connectToServer(new ClientHandler(), uri);
-
+                 Session session = container.connectToServer(new ClientHandler(), uri);
+                 return session;
 
             } catch (DeploymentException e) {
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            return null;
 
 
     }
@@ -80,14 +82,24 @@ public class WebSocketClient {
         sessions = null; */
     }
 
+
+
+    static ObjectMapper mapper = new ObjectMapper();
+
     public void send(Request task) {
 
         task.setRequestId(IdCreator.getId());
 
 
                 try {
-                    ObjectMapper mapper = new ObjectMapper();
                     String e = mapper.writeValueAsString(task);
+
+                    Session session = localSession.get();
+                    if (session==null)
+                    {
+                        session = connect();
+                        localSession.set(session);
+                    }
 
                     session.getBasicRemote().sendText(e);
                 } catch (IOException e1) {

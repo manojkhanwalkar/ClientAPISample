@@ -10,7 +10,7 @@ public class ClientTester {
     public static void main(String[] args) throws Exception {
         WebSocketClient client = new WebSocketClient();
 
-        client.connect();
+       // client.connect();
 
         Request request = new Request();
         request.setRequestId(IdCreator.getId());
