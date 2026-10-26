@@ -3,6 +3,7 @@ package server;
         import com.fasterxml.jackson.databind.ObjectMapper;
         import data.Request;
         import data.Response;
+        import util.Protocol;
 
         import javax.websocket.*;
         import javax.websocket.server.ServerEndpoint;
@@ -11,7 +12,8 @@ package server;
         import java.util.concurrent.Executors;
         import java.util.concurrent.atomic.AtomicInteger;
 
-@ServerEndpoint("/service/request")
+// Browser Origins are checked by OriginCheckConfigurator; message size and idle timeout are bounded.
+@ServerEndpoint(value = "/service/request", configurator = OriginCheckConfigurator.class)
 public class RequestHandler   {
     Session session;
 
@@ -35,9 +37,10 @@ public class RequestHandler   {
     // TODO - future impl required on the client side .
 
 
-    @OnMessage
+    @OnMessage(maxMessageSize = Protocol.MAX_MESSAGE_SIZE)
     public void onWebSocketText(String message) {
-        System.out.println( Thread.currentThread().getName() + message   );
+        // Do not log the raw payload: it is untrusted (log injection) and may carry sensitive data.
+        System.out.println(Thread.currentThread().getName() + " received message of " + message.length() + " chars");
 
         try {
             Request request = mapper.readValue(message,Request.class);
@@ -49,7 +52,7 @@ public class RequestHandler   {
                 session.getBasicRemote().sendText(mapper.writeValueAsString(response));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Rejected malformed request: " + e.getClass().getSimpleName());
         }
         //     processAdapter.process(new RequestHandlerImpl(appHandler,message,session));
 

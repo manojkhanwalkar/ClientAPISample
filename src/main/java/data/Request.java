@@ -4,9 +4,6 @@ package data;
 
         import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
         import java.io.Serializable;
-        import java.util.Map;
-        import javax.validation.constraints.NotNull;
-        import org.hibernate.validator.constraints.NotEmpty;
 
 /**
  *

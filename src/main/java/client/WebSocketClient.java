@@ -7,12 +7,12 @@ package client;
 
         import javax.websocket.*;
         import java.io.IOException;
+        import java.io.UncheckedIOException;
         import java.net.URI;
         import java.util.*;
         import java.util.concurrent.ConcurrentHashMap;
         import java.util.concurrent.ConcurrentMap;
         import java.util.concurrent.Future;
-        import java.util.concurrent.FutureTask;
 
 
 public class WebSocketClient {
@@ -39,21 +39,22 @@ public class WebSocketClient {
     }
 
 
-    private Session connect() {
-            try {
-                URI uri = URI.create(protocol+"://"+host+":"+port+ endPoint);
-                 Session session = container.connectToServer(new ClientHandler(), uri);
-                 return session;
+    private Session connect() throws IOException {
+        URI uri = URI.create(protocol + "://" + host + ":" + port + endPoint);
+        try {
+            return container.connectToServer(new ClientHandler(), uri);
+        } catch (DeploymentException e) {
+            throw new IOException("Unable to connect to " + uri, e);
+        }
+    }
 
-            } catch (DeploymentException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            return null;
-
-
+    private Session session() throws IOException {
+        Session session = localSession.get();
+        if (session == null || !session.isOpen()) {
+            session = connect();
+            localSession.set(session);
+        }
+        return session;
     }
 
 
@@ -77,35 +78,55 @@ public class WebSocketClient {
 
     static ObjectMapper mapper = new ObjectMapper();
 
+    /**
+     * Sends a request and returns a Future for its response. If the request cannot be sent, or the connection
+     * closes before the response arrives, the returned Future fails with the cause instead of hanging.
+     *
+     * @throws NullPointerException if task is null
+     */
     public Future<Response> send(Request task) {
-
-                try {
-                    String e = mapper.writeValueAsString(task);
-
-                    Session session = localSession.get();
-                    if (session==null)
-                    {
-                        session = connect();
-                        localSession.set(session);
-                    }
-
-                    RequestHolder rh = new RequestHolder(task);
-                    FutureTask<Response> ft = new FutureTask(rh);
-
-                    rh.setFutureTask(ft);
-
-                    waitList.put(task.getRequestId(),rh);
-
-
-                    session.getBasicRemote().sendText(e);
-                    return ft;
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                    return null;
-                }
-
-
+        RequestHolder rh = new RequestHolder(Objects.requireNonNull(task, "task"));
+        try {
+            dispatch(rh);
+        } catch (IOException | RuntimeException e) {
+            rh.fail(e);
         }
+        return rh.getFuture();
+    }
+
+    /**
+     * Sends a request; notify is called when the response arrives, or {@link Notify#onFailure} if the
+     * connection closes first.
+     *
+     * @throws java.io.UncheckedIOException if the request cannot be sent (no callback will follow)
+     * @throws NullPointerException if task is null
+     */
+    public void asend(Request task, Notify notify) {
+        RequestHolder rh = new RequestHolder(Objects.requireNonNull(task, "task"), notify);
+        try {
+            dispatch(rh);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** Registers the request as pending and sends it; on failure it is no longer pending. */
+    private void dispatch(RequestHolder rh) throws IOException {
+        long id = rh.getRequest().getRequestId();
+        String json = mapper.writeValueAsString(rh.getRequest());
+        Session session = session();
+        // set before registering, so a close that races with this send still finds and fails the request
+        rh.setSession(session);
+        if (waitList.putIfAbsent(id, rh) != null) {
+            throw new IllegalStateException("Request id " + id + " is already waiting for a response");
+        }
+        try {
+            session.getBasicRemote().sendText(json);
+        } catch (IOException | RuntimeException e) {
+            waitList.remove(id, rh);
+            throw e;
+        }
+    }
 
     static ConcurrentMap<Long,RequestHolder> waitList = new ConcurrentHashMap<>();
 
@@ -115,33 +136,13 @@ public class WebSocketClient {
         return holder;
     }
 
-
-    public void asend(Request task, Notify notify) {
-
-        try {
-            String e = mapper.writeValueAsString(task);
-
-            Session session = localSession.get();
-            if (session==null)
-            {
-                session = connect();
-                localSession.set(session);
+    /** Fails every request still waiting for a response on {@code session}, which has closed. */
+    static void failPending(Session session, Throwable cause) {
+        for (Map.Entry<Long, RequestHolder> entry : waitList.entrySet()) {
+            RequestHolder holder = entry.getValue();
+            if (holder.getSession() == session && waitList.remove(entry.getKey(), holder)) {
+                holder.fail(cause);
             }
-
-
-            waitList.put(task.getRequestId(),new RequestHolder(task,notify));
-
-            session.getBasicRemote().sendText(e);
-        } catch (IOException e1) {
-            e1.printStackTrace();
         }
-
-
     }
-
-
-
 }
-
-
-

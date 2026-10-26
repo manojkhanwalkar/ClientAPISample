@@ -8,39 +8,25 @@
     <artifactId>ClientAPISample</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <!-- Jetty 9.4.x is the last 9.x line; 9.3.1 carried many known CVEs (e.g. CVE-2017-7657/7658, CVE-2017-9735). -->
+        <jetty.version>9.4.57.v20241219</jetty.version>
+        <jackson.version>2.18.2</jackson.version>
+    </properties>
+
     <dependencies>
-
-
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-            <version>1.2.2.RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-            <version>4.1.5.RELEASE</version>
-        </dependency>
+        <!--
+          Removed unused dependencies (spring-boot-starter, spring-web, hibernate-validator,
+          validation-api, commons-codec): no code referenced them, and they pulled in old,
+          vulnerable libraries plus a logback setup that logged every WebSocket frame at DEBUG.
+        -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.5.1</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
-            <version>1.1.0.Final</version>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-validator</artifactId>
-            <version>5.1.3.Final</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <version>1.10</version>
+            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
@@ -52,34 +38,25 @@
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>websocket-server</artifactId>
-            <version>9.3.1.v20150714</version>
+            <version>${jetty.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>javax-websocket-server-impl</artifactId>
-            <version>9.3.1.v20150714</version>
+            <version>${jetty.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>javax-websocket-client-impl</artifactId>
-            <version>9.3.1.v20150714</version>
+            <version>${jetty.version}</version>
         </dependency>
-
-
-
-
-        <!--      <dependency>
-                  <groupId>org.eclipse.jetty.websocket</groupId>
-                  <artifactId>javax-websocket-server-impl</artifactId>
-                  <version>9.3.1</version>
-              </dependency>
-              <dependency>
-                  <groupId>org.eclipse.jetty.websocket</groupId>
-                  <artifactId>javax-websocket-client-impl</artifactId>
-                  <version>${jetty-version}</version>
-              </dependency> -->
-
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 
