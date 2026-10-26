@@ -27,11 +27,11 @@ public class ClientHandler {
         this.session = sess;
     }
 
-    @OnMessage
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    @OnMessage(maxMessageSize = 64 * 1024)
     public void onWebSocketText(String message) {
         // System.out.println("Received TEXT message: " + message);
-
-        ObjectMapper mapper = new ObjectMapper();
 
         try {
             Response response = mapper.readValue(message, Response.class);
@@ -51,7 +51,7 @@ public class ClientHandler {
 
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Ignored malformed response: " + e.getClass().getSimpleName());
         }
 
     }
