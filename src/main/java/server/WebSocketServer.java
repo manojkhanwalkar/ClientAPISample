@@ -6,6 +6,7 @@ package server;
         import org.eclipse.jetty.servlet.ServletContextHandler;
         import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
         import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
+        import util.Protocol;
 
 /**
  * Sample WebSocket server.
@@ -19,8 +20,6 @@ package server;
  */
 public class WebSocketServer {
 
-    /** Largest text message (bytes) the server accepts. */
-    static final int MAX_MESSAGE_SIZE = 64 * 1024;
     /** Idle connections are closed after this many milliseconds. */
     static final long IDLE_TIMEOUT_MS = 5 * 60 * 1000L;
 
@@ -35,10 +34,21 @@ public class WebSocketServer {
         return (v == null || v.trim().isEmpty()) ? defaultValue : v.trim();
     }
 
-    public static void main(String[] args) {
-        String host = config("ws.host", "WS_HOST", "127.0.0.1");
-        int port = Integer.parseInt(config("ws.port", "WS_PORT", "9090"));
+    /** Parses a port setting, failing with a message that names the setting. */
+    static int port(String value) {
+        try {
+            int port = Integer.parseInt(value);
+            if (port >= 0 && port <= 65535) {
+                return port;
+            }
+        } catch (NumberFormatException e) {
+            // reported below
+        }
+        throw new IllegalArgumentException("ws.port / WS_PORT must be a port number from 0 to 65535, got \"" + value + "\"");
+    }
 
+    /** Starts the server on host:port (0 picks a free port) and returns it once it is listening. */
+    static Server start(String host, int port) throws Exception {
         Server server = new Server();
         ServerConnector connector = new ServerConnector(server);
         connector.setHost(host);
@@ -48,18 +58,33 @@ public class WebSocketServer {
         context.setContextPath("/");
         server.setHandler(context);
 
+        ServerContainer t = WebSocketServerContainerInitializer.configureContext(context);
+        t.setDefaultMaxTextMessageBufferSize(Protocol.MAX_MESSAGE_SIZE);
+        t.setDefaultMaxSessionIdleTimeout(IDLE_TIMEOUT_MS);
+        t.addEndpoint(RequestHandler.class);
+
+       // Handler.setProcessAdapter(new LMaxAdapter());
+        // Handler.setProcessAdapter(new ThreadPoolAdapter());
+       // Handler.setApphandler(new ApplicationHandlerImpl());
+
+        server.start();
+        System.out.println("WebSocket server listening on " + host + ":" + connector.getLocalPort());
+        return server;
+    }
+
+    public static void main(String[] args) {
+        String host = config("ws.host", "WS_HOST", "127.0.0.1");
+        int port;
         try {
-            ServerContainer t = WebSocketServerContainerInitializer.configureContext(context);
-            t.setDefaultMaxTextMessageBufferSize(MAX_MESSAGE_SIZE);
-            t.setDefaultMaxSessionIdleTimeout(IDLE_TIMEOUT_MS);
-            t.addEndpoint(RequestHandler.class);
+            port = port(config("ws.port", "WS_PORT", "9090"));
+        } catch (IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+            System.exit(2);
+            return;
+        }
 
-           // Handler.setProcessAdapter(new LMaxAdapter());
-            // Handler.setProcessAdapter(new ThreadPoolAdapter());
-           // Handler.setApphandler(new ApplicationHandlerImpl());
-
-            server.start();
-            System.out.println("WebSocket server listening on " + host + ":" + port);
+        try {
+            Server server = start(host, port);
            // server.dump(System.err);
             server.join();
         } catch (Throwable var5) {

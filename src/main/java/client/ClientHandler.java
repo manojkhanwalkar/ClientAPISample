@@ -2,6 +2,7 @@ package client;
 
         import com.fasterxml.jackson.databind.ObjectMapper;
         import data.Response;
+        import util.Protocol;
 
         import javax.websocket.ClientEndpoint;
         import javax.websocket.CloseReason;
@@ -29,36 +30,29 @@ public class ClientHandler {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    @OnMessage(maxMessageSize = 64 * 1024)
+    @OnMessage(maxMessageSize = Protocol.MAX_MESSAGE_SIZE)
     public void onWebSocketText(String message) {
         // System.out.println("Received TEXT message: " + message);
 
+        Response response;
         try {
-            Response response = mapper.readValue(message, Response.class);
-            long id = response.getRequestId();
-
-            RequestHolder holder = WebSocketClient.removeRequest(id);
-            if (holder!=null && holder.getNotify()!=null)
-            {
-                holder.getNotify().callback(response);
-            }
-
-            if (holder!=null && holder.getFutureTask()!=null)
-            {
-                holder.setResponse(response);
-                holder.getFutureTask().run();
-            }
-
-
+            response = mapper.readValue(message, Response.class);
         } catch (IOException e) {
             System.err.println("Ignored malformed response: " + e.getClass().getSimpleName());
+            return;
         }
-
+        RequestHolder holder = WebSocketClient.removeRequest(response.getRequestId());
+        if (holder != null) {
+            holder.complete(response);
+        }
     }
 
     @OnClose
-    public void onWebSocketClose(CloseReason reason) {
+    public void onWebSocketClose(Session closed, CloseReason reason) {
         System.out.println("Socket Closed: " + reason);
+        // no response can arrive on this session any more
+        WebSocketClient.failPending(closed,
+                new IOException("Connection closed before the response arrived: " + reason));
     }
 
     @OnError

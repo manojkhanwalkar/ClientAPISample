@@ -3,6 +3,7 @@ package server;
         import com.fasterxml.jackson.databind.ObjectMapper;
         import data.Request;
         import data.Response;
+        import util.Protocol;
 
         import javax.websocket.*;
         import javax.websocket.server.ServerEndpoint;
@@ -36,7 +37,7 @@ public class RequestHandler   {
     // TODO - future impl required on the client side .
 
 
-    @OnMessage(maxMessageSize = WebSocketServer.MAX_MESSAGE_SIZE)
+    @OnMessage(maxMessageSize = Protocol.MAX_MESSAGE_SIZE)
     public void onWebSocketText(String message) {
         // Do not log the raw payload: it is untrusted (log injection) and may carry sensitive data.
         System.out.println(Thread.currentThread().getName() + " received message of " + message.length() + " chars");

@@ -1,9 +1,12 @@
 package server;
 
 import javax.websocket.server.ServerEndpointConfig;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -25,7 +28,7 @@ public class OriginCheckConfigurator extends ServerEndpointConfig.Configurator {
         if (commaSeparatedOrigins != null) {
             for (String o : Arrays.asList(commaSeparatedOrigins.split(","))) {
                 if (!o.trim().isEmpty()) {
-                    origins.add(o.trim().toLowerCase());
+                    origins.add(normalize(o));
                 }
             }
         }
@@ -37,6 +40,31 @@ public class OriginCheckConfigurator extends ServerEndpointConfig.Configurator {
         if (originHeaderValue == null || originHeaderValue.isEmpty()) {
             return true; // non-browser client
         }
-        return allowedOrigins.contains(originHeaderValue.trim().toLowerCase());
+        return allowedOrigins.contains(normalize(originHeaderValue));
+    }
+
+    /**
+     * Canonical form of an origin, as browsers send it: lower case, no trailing slash, no default port.
+     * So "https://App.example/" and "https://app.example:443" both match "https://app.example".
+     */
+    static String normalize(String origin) {
+        String o = origin.trim().toLowerCase(Locale.ROOT);
+        while (o.endsWith("/")) {
+            o = o.substring(0, o.length() - 1);
+        }
+        try {
+            URI uri = new URI(o);
+            String scheme = uri.getScheme();
+            if (scheme == null || uri.getHost() == null) {
+                return o; // e.g. "null" from sandboxed pages: compared as-is
+            }
+            int port = uri.getPort();
+            boolean defaultPort = port == -1
+                    || (port == 443 && (scheme.equals("https") || scheme.equals("wss")))
+                    || (port == 80 && (scheme.equals("http") || scheme.equals("ws")));
+            return scheme + "://" + uri.getHost() + (defaultPort ? "" : ":" + port);
+        } catch (URISyntaxException e) {
+            return o;
+        }
     }
 }

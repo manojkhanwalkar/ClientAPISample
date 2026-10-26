@@ -7,13 +7,12 @@ package client;
 
         import javax.websocket.*;
         import java.io.IOException;
+        import java.io.UncheckedIOException;
         import java.net.URI;
         import java.util.*;
-        import java.util.concurrent.CompletableFuture;
         import java.util.concurrent.ConcurrentHashMap;
         import java.util.concurrent.ConcurrentMap;
         import java.util.concurrent.Future;
-        import java.util.concurrent.FutureTask;
 
 
 public class WebSocketClient {
@@ -80,24 +79,52 @@ public class WebSocketClient {
     static ObjectMapper mapper = new ObjectMapper();
 
     /**
-     * Sends a request and returns a Future for its response. If the request cannot be sent,
-     * the returned Future fails with the cause instead of this method returning null.
+     * Sends a request and returns a Future for its response. If the request cannot be sent, or the connection
+     * closes before the response arrives, the returned Future fails with the cause instead of hanging.
+     *
+     * @throws NullPointerException if task is null
      */
     public Future<Response> send(Request task) {
-        RequestHolder rh = new RequestHolder(task);
-        FutureTask<Response> ft = new FutureTask<>(rh);
-        rh.setFutureTask(ft);
+        RequestHolder rh = new RequestHolder(Objects.requireNonNull(task, "task"));
         try {
-            String e = mapper.writeValueAsString(task);
-            Session session = session();
-            waitList.put(task.getRequestId(), rh);
-            session.getBasicRemote().sendText(e);
-            return ft;
-        } catch (IOException | RuntimeException e1) {
-            waitList.remove(task.getRequestId(), rh);
-            CompletableFuture<Response> failed = new CompletableFuture<>();
-            failed.completeExceptionally(e1);
-            return failed;
+            dispatch(rh);
+        } catch (IOException | RuntimeException e) {
+            rh.fail(e);
+        }
+        return rh.getFuture();
+    }
+
+    /**
+     * Sends a request; notify is called when the response arrives, or {@link Notify#onFailure} if the
+     * connection closes first.
+     *
+     * @throws java.io.UncheckedIOException if the request cannot be sent (no callback will follow)
+     * @throws NullPointerException if task is null
+     */
+    public void asend(Request task, Notify notify) {
+        RequestHolder rh = new RequestHolder(Objects.requireNonNull(task, "task"), notify);
+        try {
+            dispatch(rh);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** Registers the request as pending and sends it; on failure it is no longer pending. */
+    private void dispatch(RequestHolder rh) throws IOException {
+        long id = rh.getRequest().getRequestId();
+        String json = mapper.writeValueAsString(rh.getRequest());
+        Session session = session();
+        // set before registering, so a close that races with this send still finds and fails the request
+        rh.setSession(session);
+        if (waitList.putIfAbsent(id, rh) != null) {
+            throw new IllegalStateException("Request id " + id + " is already waiting for a response");
+        }
+        try {
+            session.getBasicRemote().sendText(json);
+        } catch (IOException | RuntimeException e) {
+            waitList.remove(id, rh);
+            throw e;
         }
     }
 
@@ -109,25 +136,13 @@ public class WebSocketClient {
         return holder;
     }
 
-
-    /**
-     * Sends a request; notify is called when the response arrives.
-     *
-     * @throws java.io.UncheckedIOException if the request cannot be sent (no callback will follow)
-     */
-    public void asend(Request task, Notify notify) {
-        RequestHolder rh = new RequestHolder(task, notify);
-        try {
-            String e = mapper.writeValueAsString(task);
-            Session session = session();
-            waitList.put(task.getRequestId(), rh);
-            session.getBasicRemote().sendText(e);
-        } catch (IOException e1) {
-            waitList.remove(task.getRequestId(), rh);
-            throw new java.io.UncheckedIOException(e1);
-        } catch (RuntimeException e1) {
-            waitList.remove(task.getRequestId(), rh);
-            throw e1;
+    /** Fails every request still waiting for a response on {@code session}, which has closed. */
+    static void failPending(Session session, Throwable cause) {
+        for (Map.Entry<Long, RequestHolder> entry : waitList.entrySet()) {
+            RequestHolder holder = entry.getValue();
+            if (holder.getSession() == session && waitList.remove(entry.getKey(), holder)) {
+                holder.fail(cause);
+            }
         }
     }
 }
